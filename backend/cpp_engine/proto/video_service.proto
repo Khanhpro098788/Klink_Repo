@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package video;
+
+service VideoEngine {
+  rpc Render(RenderRequest) returns (RenderResponse);
+}
+
+message RenderRequest {
+  string task_id = 1;
+  string script_id = 2;
+  string video_url = 3;
+  string audio_url = 4;
+  string resolution = 5;
+  bool delta_caching = 6;
+  bool auto_ducking = 7;
+}
+
+message RenderResponse {
+  string task_id = 1;
+  bool success = 2;
+  string output_url = 3;
+  int64 processing_time_ms = 4;
+  string error_message = 5;
+}

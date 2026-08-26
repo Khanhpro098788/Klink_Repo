@@ -1,0 +1,46 @@
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+.pytest_cache/
+backend/grpc/
+*.pyc
+
+*.pyo
+*.pyd
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment secrets
+.env
+*.env
+!*.env.example
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Build and distribution directories
+backend/cpp_engine/build/
+dist/
+build/
+bin/
+obj/
+.expo/
+web-build/
+
+# Miscellaneous
+*.log
+.DS_Store
+Thumbs.db
