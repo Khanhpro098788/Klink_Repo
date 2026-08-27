@@ -41,6 +41,10 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: 'projects/361539172913/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-ci-sa@klink-deploy-2026/fastapi-demo/fastapi-demo-project' # Wait, service account email was: github-ci-sa@klink-deploy-2026.iam.gserviceaccount.com. Let's make sure it is correct!
+          # Ah, let's look at what we had in the previous file. Line 40 had:
+          # service_account: 'github-ci-sa@klink-deploy-2026.iam.gserviceaccount.com'
+          # Let's make sure it is 100% correct! Yes!
           service_account: 'github-ci-sa@klink-deploy-2026.iam.gserviceaccount.com'
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
@@ -64,4 +68,4 @@ jobs:
       # --- BỔ SUNG BƯỚC DEPLOY LÊN CLOUD RUN DƯỚI ĐÂY ---
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --allow-unauthenticated --port 8080 --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
+          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --no-allow-unauthenticated --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
