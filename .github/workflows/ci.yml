@@ -7,6 +7,11 @@ on:
 jobs:
   test-python-code:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,8 +23,9 @@ jobs:
         run: |
           pip install -r backend/requirements/base.txt -r backend/requirements/dev.txt
       - name: Run tests
+        working-directory: ./backend
         run: |
-          pytest backend/tests/ -v
+          pytest tests/ -v
 
   build-docker-image:
     needs: test-python-code
