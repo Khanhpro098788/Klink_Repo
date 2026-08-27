@@ -32,12 +32,16 @@ jobs:
   build-docker-image:
     needs: test-python-code
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Yêu cầu bắt buộc để lấy Token từ GitHub OIDC nhằm xác thực WIF
     steps:
       - uses: actions/checkout@v4
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          workload_identity_provider: 'projects/361539172913/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-ci-sa@klink-deploy-2026.iam.gserviceaccount.com'
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
       - name: Configure Docker for GCP

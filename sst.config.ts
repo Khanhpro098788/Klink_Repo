@@ -27,6 +27,7 @@ export default $config({
       location: "asia-southeast1",
       template: {
         spec: {
+          serviceAccountName: "cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com", // Chỉ định Service Account chạy lúc runtime
           containers: [{
             image: "asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:latest",
             ports: [{ containerPort: 8080 }],
