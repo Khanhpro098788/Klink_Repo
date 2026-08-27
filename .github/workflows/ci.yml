@@ -60,4 +60,4 @@ jobs:
       # --- BỔ SUNG BƯỚC DEPLOY LÊN CLOUD RUN DƯỚI ĐÂY ---
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --allow-unauthenticated --port 8080
+          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --allow-unauthenticated --port 8080 --project klink-deploy-2026
