@@ -37,19 +37,26 @@ jobs:
       id-token: 'write' # Yêu cầu bắt buộc để lấy Token từ GitHub OIDC nhằm xác thực WIF
     steps:
       - uses: actions/checkout@v4
+      
+      # 1. Xác thực Google Cloud bằng WIF
       - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: 'projects/361539172913/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
           service_account: 'github-ci-sa@klink-deploy-2026.iam.gserviceaccount.com'
+      
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
+      
       - name: Configure Docker for GCP
         run: |
           gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build and Push Docker Image
+      
+      # 2. Build & Push Backend Docker Image
+      - name: Build and Push Backend Image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -61,7 +68,45 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- BỔ SUNG BƯỚC DEPLOY LÊN CLOUD RUN DƯỚI ĐÂY ---
-      - name: Deploy to Cloud Run
+      # 3. Lấy URL Backend hiện tại để inject vào Frontend lúc build
+      - name: Get Backend URL
+        id: backend-url
         run: |
-          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --no-allow-unauthenticated --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
+          URL=$(gcloud run services describe fastapi-service-dev --region asia-southeast1 --project klink-deploy-2026 --format="value(status.url)" || echo "https://fastapi-service-dev-93ce436-361539172913.asia-southeast1.run.app")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      # 4. Build & Push Frontend Docker Image
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend-web
+          file: ./frontend-web/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_URL=${{ steps.backend-url.outputs.url }}
+          tags: |
+            asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/frontend-web:${{ github.sha }}
+            asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/frontend-web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 5. Cài đặt môi trường Node.js để chạy SST
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      
+      - name: Install Node dependencies
+        run: |
+          npm install
+
+      # 6. Deploy hạ tầng và cập nhật mã nguồn Cloud Run thông qua SST
+      - name: Deploy to GCP via SST
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          IMAGE_URL: asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }}
+          FRONTEND_IMAGE_URL: asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/frontend-web:${{ github.sha }}
+        run: |
+          npx sst deploy --stage dev

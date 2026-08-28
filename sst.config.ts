@@ -6,7 +6,7 @@ export default $config({
       name: "fastapi-demo",
       removal: input?.stage === "production" ? "retain" : "remove",
       protect: ["production"].includes(input?.stage),
-      home: "local", // Sử dụng local state để bỏ qua AWS credentials
+      home: "aws", // Sử dụng AWS S3 để quản lý State tập trung
       providers: {
         gcp: {
           version: "8.41.1",            // Cấu hình rõ phiên bản gcp provider được tải
@@ -21,22 +21,23 @@ export default $config({
     // Sử dụng dynamic import bên trong hàm run theo yêu cầu của SST v3
     const gcp = await import("@pulumi/gcp");
 
-    // Khai báo dịch vụ Cloud Run và truyền rõ project ID vào tham số
+    // --- 1. DỊCH VỤ BACKEND ---
+    const imageUrl = process.env.IMAGE_URL || "asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:latest";
+
     const service = new gcp.cloudrun.Service(`fastapi-service-${$app.stage}`, {
       project: "klink-deploy-2026",
       location: "asia-southeast1",
       template: {
         spec: {
-          serviceAccountName: "cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com", // Chỉ định Service Account chạy lúc runtime
+          serviceAccountName: "cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com",
           containers: [{
-            image: "asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:latest",
+            image: imageUrl,
             ports: [{ containerPort: 8080 }],
           }],
         },
       },
     });
 
-    // Mở quyền public cho allUsers
     new gcp.cloudrun.IamMember(`public-access-${$app.stage}`, {
       project: "klink-deploy-2026",
       service: service.name,
@@ -45,9 +46,35 @@ export default $config({
       member: "allUsers",
     });
 
-    // --- KHAI BÁO CÁC TÀI NGUYÊN MONITORING & ALERTING ---
+    // --- 2. DỊCH VỤ FRONTEND ---
+    const frontendImageUrl = process.env.FRONTEND_IMAGE_URL || "asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/frontend-web:latest";
 
-    // 1. Kênh nhận cảnh báo qua Email
+    const frontendService = new gcp.cloudrun.Service(`frontend-service-${$app.stage}`, {
+      project: "klink-deploy-2026",
+      location: "asia-southeast1",
+      template: {
+        spec: {
+          serviceAccountName: "cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com", // Sử dụng chung runtime SA bảo mật
+          containers: [{
+            image: frontendImageUrl,
+            ports: [{ containerPort: 8080 }],
+          }],
+        },
+      },
+    });
+
+    // Mở quyền public cho Frontend (để người dùng truy cập từ internet)
+    new gcp.cloudrun.IamMember(`frontend-public-access-${$app.stage}`, {
+      project: "klink-deploy-2026",
+      service: frontendService.name,
+      location: frontendService.location,
+      role: "roles/run.invoker",
+      member: "allUsers",
+    });
+
+    // --- 3. KHAI BÁO CÁC TÀI NGUYÊN MONITORING & ALERTING ---
+
+    // Kênh nhận cảnh báo qua Email
     const emailChannel = new gcp.monitoring.NotificationChannel(`email-channel-${$app.stage}`, {
       project: "klink-deploy-2026",
       type: "email",
@@ -57,7 +84,7 @@ export default $config({
       },
     });
 
-    // 2. Cảnh báo lỗi HTTP 5xx (Lưu lượng lỗi > 0 trong 1 phút)
+    // Cảnh báo lỗi HTTP 5xx (Lưu lượng lỗi > 0 trong 1 phút)
     const alert5xx = new gcp.monitoring.AlertPolicy(`alert-5xx-${$app.stage}`, {
       project: "klink-deploy-2026",
       displayName: `Cloud Run 5xx Error Alert (${$app.stage})`,
@@ -82,7 +109,7 @@ export default $config({
       },
     });
 
-    // 3. Cảnh báo độ trễ Latency (p95 latency > 2000ms trong 5 phút)
+    // Cảnh báo độ trễ Latency (p95 latency > 2000ms trong 5 phút)
     const alertLatency = new gcp.monitoring.AlertPolicy(`alert-latency-${$app.stage}`, {
       project: "klink-deploy-2026",
       displayName: `Cloud Run Latency p95 Alert (${$app.stage})`,
@@ -108,7 +135,7 @@ export default $config({
       },
     });
 
-    // 4. Bảng điều khiển hiệu năng (Performance Dashboard)
+    // Bảng điều khiển hiệu năng (Performance Dashboard)
     const performanceDashboard = new gcp.monitoring.Dashboard(`performance-dashboard-${$app.stage}`, {
       project: "klink-deploy-2026",
       dashboardJson: JSON.stringify({
@@ -154,7 +181,8 @@ export default $config({
     });
 
     return { 
-      WebsiteURL: service.statuses[0].url,
+      BackendURL: service.statuses[0].url,
+      FrontendURL: frontendService.statuses[0].url,
       NotificationChannel: emailChannel.id,
       Alert5xxPolicy: alert5xx.id,
       AlertLatencyPolicy: alertLatency.id,
