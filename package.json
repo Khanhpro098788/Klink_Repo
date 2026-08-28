@@ -1,0 +1,8 @@
+{
+  "name": "klink-infra",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@pulumi/gcp": "^8.0.0"
+  }
+}
