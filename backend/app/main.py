@@ -4,6 +4,7 @@ import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from app.config import settings
 from app.core.database import db_manager
 from app.auth.router import router as auth_router
 
@@ -89,5 +90,11 @@ async def health_check():
 
 @app.get("/crash", tags=["system"])
 async def trigger_crash():
+    # Chỉ cho phép kích hoạt lỗi ở môi trường dev/local để tránh bị lạm dụng ở production
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="Crash simulation is not allowed in production environment"
+        )
     # Giả lập lỗi 500 phục vụ test Alerting
     raise HTTPException(status_code=500, detail="Intentional system crash for alerting test")
