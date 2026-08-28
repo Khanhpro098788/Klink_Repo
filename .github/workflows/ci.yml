@@ -90,12 +90,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # 5. Triển khai Backend lên Cloud Run (Không cần AWS/SST)
+      # 5. Triển khai Backend lên Cloud Run (Đổi sang --allow-unauthenticated để cho phép Frontend gọi API)
       - name: Deploy Backend to Cloud Run
         run: |
-          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --no-allow-unauthenticated --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
+          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --allow-unauthenticated --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
 
-      # 6. Triển khai Frontend lên Cloud Run (Không cần AWS/SST - Cho phép public truy cập)
+      # 6. Triển khai Frontend lên Cloud Run (Cho phép public truy cập)
       - name: Deploy Frontend to Cloud Run
         run: |
           gcloud run deploy frontend-service --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/frontend-web:${{ github.sha }} --platform managed --region asia-southeast1 --allow-unauthenticated --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
