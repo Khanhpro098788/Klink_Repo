@@ -6,7 +6,7 @@ export default $config({
       name: "fastapi-demo",
       removal: input?.stage === "production" ? "retain" : "remove",
       protect: ["production"].includes(input?.stage),
-      home: "aws", // Sử dụng AWS S3 để quản lý State tập trung
+      home: "local", // Trả về "local" để lưu trữ State cục bộ trên máy, loại bỏ hoàn toàn yêu cầu AWS Credentials
       providers: {
         gcp: {
           version: "8.41.1",            // Cấu hình rõ phiên bản gcp provider được tải
@@ -54,7 +54,7 @@ export default $config({
       location: "asia-southeast1",
       template: {
         spec: {
-          serviceAccountName: "cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com", // Sử dụng chung runtime SA bảo mật
+          serviceAccountName: "cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com",
           containers: [{
             image: frontendImageUrl,
             ports: [{ containerPort: 8080 }],

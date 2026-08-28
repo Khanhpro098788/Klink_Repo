@@ -72,7 +72,7 @@ jobs:
       - name: Get Backend URL
         id: backend-url
         run: |
-          URL=$(gcloud run services describe fastapi-service-dev --region asia-southeast1 --project klink-deploy-2026 --format="value(status.url)" || echo "https://fastapi-service-dev-93ce436-361539172913.asia-southeast1.run.app")
+          URL=$(gcloud run services describe fastapi-demo-project --region asia-southeast1 --project klink-deploy-2026 --format="value(status.url)" || echo "https://fastapi-demo-project-361539172913.asia-southeast1.run.app")
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       # 4. Build & Push Frontend Docker Image
@@ -90,23 +90,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # 5. Cài đặt môi trường Node.js để chạy SST
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      
-      - name: Install Node dependencies
+      # 5. Triển khai Backend lên Cloud Run (Không cần AWS/SST)
+      - name: Deploy Backend to Cloud Run
         run: |
-          npm install
+          gcloud run deploy fastapi-demo-project --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }} --platform managed --region asia-southeast1 --no-allow-unauthenticated --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
 
-      # 6. Deploy hạ tầng và cập nhật mã nguồn Cloud Run thông qua SST
-      - name: Deploy to GCP via SST
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          IMAGE_URL: asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/fastapi-demo-project:${{ github.sha }}
-          FRONTEND_IMAGE_URL: asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/frontend-web:${{ github.sha }}
+      # 6. Triển khai Frontend lên Cloud Run (Không cần AWS/SST - Cho phép public truy cập)
+      - name: Deploy Frontend to Cloud Run
         run: |
-          npx sst deploy --stage dev
+          gcloud run deploy frontend-service --image asia-southeast1-docker.pkg.dev/klink-deploy-2026/fastapi-demo/frontend-web:${{ github.sha }} --platform managed --region asia-southeast1 --allow-unauthenticated --project klink-deploy-2026 --service-account=cloudrun-runtime-sa@klink-deploy-2026.iam.gserviceaccount.com
