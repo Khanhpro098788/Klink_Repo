@@ -2,7 +2,7 @@ import time
 import logging
 import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import db_manager
 from app.auth.router import router as auth_router
@@ -86,3 +86,8 @@ app.include_router(auth_router)
 @app.get("/health", tags=["system"])
 async def health_check():
     return {"status": "healthy", "service": "klink-api-gateway"}
+
+@app.get("/crash", tags=["system"])
+async def trigger_crash():
+    # Giả lập lỗi 500 phục vụ test Alerting
+    raise HTTPException(status_code=500, detail="Intentional system crash for alerting test")
