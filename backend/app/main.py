@@ -9,12 +9,15 @@ from app.core.database import db_manager
 from app.auth.router import router as auth_router
 
 # Thiết lập Google Cloud Logging với phương án dự phòng (fallback) khi chạy local
-try:
-    import google.cloud.logging
-    client = google.cloud.logging.Client()
-    client.setup_logging()
-except Exception:
+if settings.ENVIRONMENT == "local":
     logging.basicConfig(level=logging.INFO)
+else:
+    try:
+        import google.cloud.logging
+        client = google.cloud.logging.Client()
+        client.setup_logging()
+    except Exception:
+        logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

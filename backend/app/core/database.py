@@ -18,7 +18,8 @@ class DatabaseManager:
             self.qdrant_client = AsyncQdrantClient(
                 host=settings.QDRANT_HOST,
                 port=settings.QDRANT_PORT,
-                api_key=settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None
+                api_key=settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None,
+                check_compatibility=False
             )
 
     def disconnect(self):
