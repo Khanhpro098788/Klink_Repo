@@ -18,6 +18,7 @@ class UserInDB(BaseModel):
     cover_photo_url: str | None = None
     bio: str | None = None
     website: str | None = None
+    auth_provider: str = "local"
     social_links: SocialLinks = Field(default_factory=SocialLinks)
     is_verified: bool = False
     is_email_verified: bool = False

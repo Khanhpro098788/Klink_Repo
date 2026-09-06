@@ -6,23 +6,27 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.core.database import db_manager
+from app.auth.otp_service import setup_otp_indexes
 from app.auth.router import router as auth_router
+from app.users.router import router as users_router
 
-# Thiết lập Google Cloud Logging với phương án dự phòng (fallback) khi chạy local
-if settings.ENVIRONMENT == "local":
-    logging.basicConfig(level=logging.INFO)
-else:
+# Chỉ thiết lập Google Cloud Logging khi ở production để tránh lỗi ADC (Application Default Credentials) ở local
+if settings.ENVIRONMENT == "production":
     try:
         import google.cloud.logging
         client = google.cloud.logging.Client()
         client.setup_logging()
     except Exception:
         logging.basicConfig(level=logging.INFO)
+else:
+    logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Connect database
     db_manager.connect()
+    # Setup OTP indexes
+    await setup_otp_indexes()
     yield
     # Disconnect database
     db_manager.disconnect()
@@ -37,7 +41,7 @@ app = FastAPI(
 # Setup CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -86,6 +90,7 @@ async def log_requests(request: Request, call_next):
 
 # Register routers
 app.include_router(auth_router)
+app.include_router(users_router)
 
 @app.get("/health", tags=["system"])
 async def health_check():

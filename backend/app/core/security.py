@@ -53,3 +53,19 @@ def decode_refresh_token(token: str) -> dict[str, Any] | None:
         return decoded
     except InvalidTokenError:
         return None
+
+def create_refresh_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days=settings.AUTH_REFRESH_JWT_EXP_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, settings.AUTH_JWT_SECRET, algorithm=settings.AUTH_JWT_ALG)
+    return encoded_jwt
+
+def create_reset_password_token(email: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode = {"sub": email, "exp": expire, "type": "reset_password"}
+    encoded_jwt = jwt.encode(to_encode, settings.AUTH_JWT_SECRET, algorithm=settings.AUTH_JWT_ALG)
+    return encoded_jwt

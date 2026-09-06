@@ -2,6 +2,18 @@ version: "3.8"
 
 services:
   # ==========================================
+  # MONGODB - Core Database for Users, Auth, and Metadata
+  # ==========================================
+  mongodb:
+    image: mongo:6.0
+    container_name: klink-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: always
+
+  # ==========================================
   # REDIS - Pub/Sub for Real-time Video Render Progress
   # ==========================================
   redis:
@@ -72,3 +84,4 @@ services:
 volumes:
   qdrant_data:
   temporal_db_data:
+  mongodb_data:

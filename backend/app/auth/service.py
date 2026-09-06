@@ -23,7 +23,16 @@ async def create_user(user_in: UserCreate) -> UserInDB:
     db = await get_mongodb()
     hashed = hash_password(user_in.password)
     
+    # Auto-generate username from email if missing
+    final_username = user_in.username
+    if not final_username:
+        final_username = user_in.email.split('@')[0]
+        # Append a random string to ensure uniqueness
+        import uuid
+        final_username = f"{final_username}_{uuid.uuid4().hex[:6]}"
+    
     user_data = {
+        "username": final_username,
         "email": user_in.email,
         "password_hash": hashed,
         "full_name": user_in.full_name,
@@ -62,9 +71,19 @@ async def create_user(user_in: UserCreate) -> UserInDB:
     await db.credit_logs.insert_one(credit_log)
     
     return UserInDB(**user_data)
- 
-async def authenticate_user(email: str, password: str) -> UserInDB | None:
-    user = await get_user_by_email(email)
+async def get_user_by_username(username: str) -> UserInDB | None:
+    db = await get_mongodb()
+    user_dict = await db.users.find_one({"username": username})
+    if user_dict:
+        return UserInDB(**user_dict)
+    return None
+
+async def authenticate_user(username: str, password: str) -> UserInDB | None:
+    # `username` parameter might contain an email address from OAuth2 form
+    user = await get_user_by_email(username)
+    if not user:
+        user = await get_user_by_username(username)
+        
     if not user:
         return None
     if not user.password_hash or not verify_password(password, user.password_hash):
