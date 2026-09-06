@@ -29,7 +29,7 @@ GOOGLE_CLIENT_ID = "361539172913-nksh7dk9s7bj2e39jnvtp4077hna3n5c.apps.googleuse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED)
+@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def signup(user_in: UserCreate, background_tasks: BackgroundTasks):
     if user_in.username:
         existing_user = await get_user_by_username(user_in.username)
@@ -46,28 +46,6 @@ async def signup(user_in: UserCreate, background_tasks: BackgroundTasks):
             detail="Email already registered"
         )
         
-    await create_and_store_otp(user_in.email, user_in.model_dump())
-    
-    return {"message": "Mã OTP đã được gửi đến email của bạn."}
-
-@router.post("/verify-otp", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def verify_otp(payload: VerifyOtpRequest):
-    user_data = await verify_and_get_otp_data(payload.email, payload.otp)
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mã OTP không hợp lệ hoặc đã hết hạn"
-        )
-        
-    # Re-verify email just in case
-    existing_email = await get_user_by_email(payload.email)
-    if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered"
-        )
-        
-    user_in = UserCreate(**user_data)
     user = await create_user(user_in)
     
     # Generate and send OTP code in the background
@@ -77,6 +55,7 @@ async def verify_otp(payload: VerifyOtpRequest):
     db = await get_mongodb()
     wallet = await db.wallets.find_one({"user_id": ObjectId(user.id)})
     balance = wallet["credit_balance"] if wallet else 10
+    
     return UserResponse(
         id=str(user.id),
         email=user.email,
