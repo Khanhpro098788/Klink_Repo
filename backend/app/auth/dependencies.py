@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.security import decode_access_token
 from app.auth.models import UserInDB
-from app.auth.service import get_user_by_username
+from app.auth.service import get_user_by_email
 
 # HTTPBearer to support Authorization: Bearer <JWT>
 security_scheme = HTTPBearer()
@@ -20,14 +20,14 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    username: str = payload.get("sub")
-    if username is None:
+    email: str = payload.get("sub")
+    if email is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token payload",
         )
         
-    user = await get_user_by_username(username)
+    user = await get_user_by_email(email)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

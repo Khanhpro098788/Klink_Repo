@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class GlobalSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=(".env", "../.env"), env_file_encoding="utf-8", extra="ignore")
 
     # MongoDB Config
     MONGODB_URI: str = "mongodb://127.0.0.1:27017"
@@ -48,6 +48,18 @@ class GlobalSettings(BaseSettings):
 
     # SMTP Config
     SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_SENDER: str = ""
+
+    # New Auth Settings
+    JWT_SECRET: str = ""
+    JWT_REFRESH_SECRET: str = ""
+    GOOGLE_CLIENT_ID: str = ""
+
+    # SMTP Config
+    SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""

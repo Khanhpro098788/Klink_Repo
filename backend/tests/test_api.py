@@ -23,7 +23,7 @@ async def test_health_check(client: AsyncClient):
 
 @pytest.mark.anyio
 async def test_signup_validation_error(client: AsyncClient):
-    response = await client.post("/auth/signup", json={"username": "testuser"})
+    response = await client.post("/auth/signup", json={"email": "invalid-email"})
     assert response.status_code == 422
 
 @pytest.mark.anyio
@@ -37,7 +37,6 @@ async def test_mongodb_integration_flow(client: AsyncClient):
     
     signup_payload = {
         "email": test_email,
-        "username": test_username,
         "password": "strong_test_password_123",
         "full_name": "Integration Test User"
     }
@@ -46,15 +45,28 @@ async def test_mongodb_integration_flow(client: AsyncClient):
     signup_response = await client.post("/auth/signup", json=signup_payload)
     assert signup_response.status_code == 201
     user_data = signup_response.json()
-    assert user_data["username"] == test_username
     assert user_data["email"] == test_email
     assert user_data["credit_balance"] == 10  # Initial free credits
     
     user_id = user_data["id"]
 
+    # Retrieve OTP code from database to verify email
+    db = await get_mongodb()
+    otp_doc = await db.otps.find_one({"email": test_email, "is_used": False})
+    assert otp_doc is not None
+    otp_code = otp_doc["otp_code"]
+
+    # Verify OTP
+    verify_response = await client.post("/auth/verify-otp", json={
+        "email": test_email,
+        "otp_code": otp_code
+    })
+    assert verify_response.status_code == 200
+    assert "access_token" in verify_response.json()
+
     # 2. Sign in (Reads from MongoDB Atlas & Authenticates)
     signin_response = await client.post("/auth/signin", json={
-        "username": test_username,
+        "email": test_email,
         "password": "strong_test_password_123"
     })
     assert signin_response.status_code == 200
@@ -65,6 +77,7 @@ async def test_mongodb_integration_flow(client: AsyncClient):
     # 3. Clean up database records from MongoDB Atlas to avoid bloating
     db = await get_mongodb()
     await db.users.delete_one({"_id": ObjectId(user_id)})
+    await db.wallets.delete_many({"user_id": ObjectId(user_id)})
     await db.credit_logs.delete_many({"user_id": ObjectId(user_id)})
     
     # Verify cleanup

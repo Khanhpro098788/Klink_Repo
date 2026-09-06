@@ -14,8 +14,8 @@ async def charge_credit(task_id: str, credit_amount: int) -> bool:
         
     owner_id = task["owner_id"]
     # Atomically verify and charge credits
-    result = await db.users.update_one(
-        {"_id": owner_id, "credit_balance": {"$gte": credit_amount}},
+    result = await db.wallets.update_one(
+        {"user_id": owner_id, "credit_balance": {"$gte": credit_amount}},
         {"$inc": {"credit_balance": -credit_amount}}
     )
     
@@ -40,8 +40,8 @@ async def refund_credit(task_id: str, credit_amount: int) -> bool:
         
     owner_id = task["owner_id"]
     # Refund credits
-    await db.users.update_one(
-        {"_id": owner_id},
+    await db.wallets.update_one(
+        {"user_id": owner_id},
         {"$inc": {"credit_balance": credit_amount}}
     )
     
