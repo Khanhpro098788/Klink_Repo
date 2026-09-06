@@ -37,7 +37,7 @@ async def test_mongodb_integration_flow(client: AsyncClient):
     
     signup_payload = {
         "email": test_email,
-        "password": "strong_test_password_123",
+        "password": "strongTestPassword123",
         "full_name": "Integration Test User"
     }
     
@@ -67,7 +67,7 @@ async def test_mongodb_integration_flow(client: AsyncClient):
     # 2. Sign in (Reads from MongoDB Atlas & Authenticates)
     signin_response = await client.post("/auth/signin", json={
         "email": test_email,
-        "password": "strong_test_password_123"
+        "password": "strongTestPassword123"
     })
     assert signin_response.status_code == 200
     token_data = signin_response.json()
