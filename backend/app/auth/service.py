@@ -22,8 +22,16 @@ async def create_user(user_in: UserCreate) -> UserInDB:
     db = await get_mongodb()
     hashed = hash_password(user_in.password)
     
+    # Auto-generate username from email if missing
+    final_username = user_in.username
+    if not final_username:
+        final_username = user_in.email.split('@')[0]
+        # Append a random string to ensure uniqueness
+        import uuid
+        final_username = f"{final_username}_{uuid.uuid4().hex[:6]}"
+    
     user_data = {
-        "username": user_in.username,
+        "username": final_username,
         "email": user_in.email,
         "hashed_password": hashed,
         "full_name": user_in.full_name,
@@ -57,7 +65,11 @@ async def create_user(user_in: UserCreate) -> UserInDB:
     return UserInDB(**user_data)
 
 async def authenticate_user(username: str, password: str) -> UserInDB | None:
-    user = await get_user_by_username(username)
+    # `username` parameter might contain an email address from OAuth2 form
+    user = await get_user_by_email(username)
+    if not user:
+        user = await get_user_by_username(username)
+        
     if not user:
         return None
     if not verify_password(password, user.hashed_password):

@@ -4,13 +4,24 @@ from app.auth.models import SocialLinks
 
 class UserCreate(BaseModel):
     email: EmailStr
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=6)
+    username: str | None = None
+    password: str = Field(..., min_length=8, pattern="^([A-Za-z]+[0-9][A-Za-z0-9]*|[0-9]+[A-Za-z][A-Za-z0-9]*)$")
     full_name: str = Field(..., min_length=1, max_length=100)
+    auth_provider: str = "local"
 
-class UserLogin(BaseModel):
-    username: str
-    password: str
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class GoogleAuthRequest(BaseModel):
+    token: str
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6)
 
 class Token(BaseModel):
     access_token: str
@@ -36,5 +47,9 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 class PasswordChange(BaseModel):
-    old_password: str
+    old_password: str | None = None
     new_password: str = Field(..., min_length=6)
+
+class UserUpdate(BaseModel):
+    full_name: str | None = None
+    avatar_url: str | None = None
