@@ -26,7 +26,10 @@ async def lifespan(app: FastAPI):
     # Connect database
     db_manager.connect()
     # Setup OTP indexes
-    await setup_otp_indexes()
+    try:
+        await setup_otp_indexes()
+    except Exception as e:
+        logging.error(f"Could not setup MongoDB indexes on startup: {e}")
     yield
     # Disconnect database
     db_manager.disconnect()
