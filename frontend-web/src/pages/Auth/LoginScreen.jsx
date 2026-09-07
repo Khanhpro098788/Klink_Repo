@@ -29,13 +29,9 @@ export default function LoginScreen() {
     setLoading(true);
     
     try {
-      // Using Form Data as requested
-      const formData = new URLSearchParams();
-      formData.append('username', email); // OAuth2 expects 'username' key, but we send email
-      formData.append('password', password);
-
-      const response = await api.post('/auth/signin', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      const response = await api.post('/auth/signin', { 
+        email, 
+        password 
       });
 
       const { access_token } = response.data;
@@ -58,7 +54,7 @@ export default function LoginScreen() {
     setError('');
     setLoading(true);
     try {
-      const response = await api.post('/auth/google', { token: credentialResponse.credential });
+      const response = await api.post('/auth/google', { google_token: credentialResponse.credential });
       const { access_token } = response.data;
       
       const userRes = await api.get('/auth/me', {
